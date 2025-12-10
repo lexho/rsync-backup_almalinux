@@ -2,7 +2,7 @@
 VERSION=0.3
 HOSTNAME=almalinux
 HOSTNAME_DEST=10.0.0.5
-USER="user"
+USER="alex"
 
 if [ $(id -u) -ne 0 ]
    then echo Please run this script as root or using sudo!
@@ -14,7 +14,8 @@ mkdir -p /mnt/system && mount -t xfs /dev/$HOSTNAME/root /mnt/system
 #mount -t xfs /dev/backup/usr /mnt/system/usr
 mount -t xfs /dev/mapper/almalinux-usr /mnt/system/usr
 #mkdir /mnt/shadow && mount -t xfs /dev/backup/sys /mnt/shadow
-mkdir -p /mnt/remote; mount -t nfs -o nolock $HOSTNAME_DEST:/volume1/$USER/Backup/$HOSTNAME/almalinux-system /mnt/remote
+USER1=$(echo "${USER^}")
+mkdir -p /mnt/remote; mount -t nfs -o nolock $HOSTNAME_DEST:/volume1/$USER1/Backup/$HOSTNAME/almalinux-system /mnt/remote
 }
 
 function list() {
@@ -90,21 +91,23 @@ function restore() {
    printf "src: $SRC\ndest: $DEST\n"
    read -p "Press Enter to run the restore..."
 
-   DIRECTORY_LIST=(
-    "/dev"
-    "/proc"
-    "/sys"
-    "/tmp"
-    "/run"
-    "/mnt"
-    "/media"
-   )
+   DIRECTORY_LIST=("/dev" "/proc" "/sys" "/tmp" "/run" "/mnt" "/media")
+   EXCLUDESTR=""
    for dir_name in "${DIRECTORY_LIST[@]}"; do
+      echo "rm -rf \"$DEST$dir_name\""
+      echo "mkdir \"$DEST$dir_name\""
       rm -rf "$DEST$dir_name"
       mkdir "$DEST$dir_name"
+      EXCLUDESTR+="\"$dir_name\""
+      EXCLUDESTR+=", "
    done
-   
-   rsync -avHAX --delete --exclude={"/home/*", "/dev/*", "/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} "$SRC" "$DEST"
+EXCLUDESTR+="\"\""
+#echo ${DIRECTORY_LIST[@]}
+echo $EXCLUDESTR
+echo "--exclude={\"/home/*\",\"/lost+found\",$EXCLUDESTR }"
+   #read -p "folder struct created Press Enter"
+   #exit 1
+   rsync -avHAX --delete --exclude={"/home/*","/lost+found","$EXCLUDESTR" } "$SRC" "$DEST"
 }
 
 function clean() {
