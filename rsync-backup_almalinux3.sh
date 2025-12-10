@@ -2,6 +2,7 @@
 VERSION=0.3
 HOSTNAME=almalinux
 HOSTNAME_DEST=10.0.0.5
+USER="user"
 
 if [ $(id -u) -ne 0 ]
    then echo Please run this script as root or using sudo!
@@ -13,7 +14,7 @@ mkdir -p /mnt/system && mount -t xfs /dev/$HOSTNAME/root /mnt/system
 #mount -t xfs /dev/backup/usr /mnt/system/usr
 mount -t xfs /dev/mapper/almalinux-usr /mnt/system/usr
 #mkdir /mnt/shadow && mount -t xfs /dev/backup/sys /mnt/shadow
-mkdir -p /mnt/remote; mount -t nfs -o nolock $HOSTNAME_DEST:/volume1/Alex/Backup/$HOSTNAME/almalinux-system /mnt/remote
+mkdir -p /mnt/remote; mount -t nfs -o nolock $HOSTNAME_DEST:/volume1/$USER/Backup/$HOSTNAME/almalinux-system /mnt/remote
 }
 
 function list() {
@@ -69,7 +70,7 @@ echo "rotating backups finished"
  echo "dest: $DEST/$NAME.0/"
  read -p "Press Enter to run the backup..."
  echo "backing up system '$HOSTNAME' to remote '$HOSTNAME_DEST'..."
- rsync -axHAXv --delete --exclude={'/home/alex/containers', '/tmp'} --link-dest=$DEST/$NAME.1 $SRC $DEST/$NAME.0/
+ rsync -axHAXv --delete --exclude={'/home/$USER/containers', '/tmp'} --link-dest=$DEST/$NAME.1 $SRC $DEST/$NAME.0/
 }
 
 function help() {
@@ -89,7 +90,20 @@ function restore() {
    printf "src: $SRC\ndest: $DEST\n"
    read -p "Press Enter to run the restore..."
 
-   mkdir -p "$DEST/dev"; mkdir -p "$DEST/proc"; mkdir -p "$DEST/sys"; mkdir -p "$DEST/tmp"; mkdir -p "$DEST/run"; mkdir -p "$DEST/mnt"; mkdir -p "$DEST/media"
+   DIRECTORY_LIST=(
+    "/dev"
+    "/proc"
+    "/sys"
+    "/tmp"
+    "/run"
+    "/mnt"
+    "/media"
+   )
+   for dir_name in "${DIRECTORY_LIST[@]}"; do
+      rm -rf "$DEST$dir_name"
+      mkdir "$DEST$dir_name"
+   done
+   
    rsync -avHAX --delete --exclude={"/home/*", "/dev/*", "/proc/*","/sys/*","/tmp/*","/run/*","/mnt/*","/media/*","/lost+found"} "$SRC" "$DEST"
 }
 
